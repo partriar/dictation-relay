@@ -1,0 +1,20 @@
+# secrets / runtime
+token.txt
+relay.log
+*.log
+latency-results.csv
+config.toml
+!config.example.toml
+# python
+.venv/
+__pycache__/
+*.pyc
+# audio + models
+*.wav
+sherpa-onnx-*/
+sherpa-onnx-*
+*.onnx
+*.keystore
+*.jks
+*.p12
+*.pem

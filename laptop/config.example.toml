@@ -1,0 +1,36 @@
+# Dictation relay settings. Copy this file to config.toml (same folder) and edit.
+# config.toml is gitignored. Precedence: command-line flag > config.toml > built-in default.
+# Every line below is optional except `hosts`.
+
+# REQUIRED. Phone address(es). All are tried at the same time and the first to answer wins,
+# so list your Tailscale address and your home Wi-Fi address together.
+hosts = ["100.x.y.z", "192.168.1.50"]
+
+# Phone server port (--port). Default 8765.
+port = 8765
+
+# Hotkey (--keys). '+'-separated names: caps, ctrl, lctrl, rctrl, win, lwin, rwin, lalt, ralt,
+# lshift, rshift, f13, f14, f15. Tap = toggle, hold = push-to-talk. Default "caps".
+keys = "caps"
+
+# Microphone (--device): a number or name from `uv run mic_client.py --list-devices`.
+# Leave out to use the Windows default mic.
+# device = 3
+
+# How text is inserted (--insert): "paste" (fast) or "type" (for apps that block paste). Default "paste".
+insert = "paste"
+
+# Seconds of silence the phone adds after you stop (--tail-pad). Below 0.7 clipped word endings in tests.
+tail_pad = 0.7
+
+# Keep recording this many seconds after release (--post-roll), if you tend to let go too early. Default 0.
+post_roll = 0.0
+
+# Add a space after the pasted text (--trailing-space / --no-trailing-space). Default true.
+trailing_space = true
+
+# Clean-up of the text: spoken numbers to digits, times, final punctuation (--tidy / --no-tidy). Default true.
+tidy = true
+
+# Also write transcripts into relay.log (--log-text). Default false (only timings are logged).
+log_text = false
