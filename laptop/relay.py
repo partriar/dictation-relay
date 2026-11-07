@@ -264,6 +264,7 @@ class Relay:
         self.loop.call_soon_threadsafe(lambda: asyncio.ensure_future(self.on_release(t)))
 
     def _mic_cb(self, indata, frames, time_info, status):
+        self.last_frame = time.monotonic()
         a = indata[:, 0].astype(np.float32)
         if self.in_rate != SR:
             n = int(round(a.size * SR / self.in_rate))
@@ -293,6 +294,43 @@ class Relay:
                 if rate is None:
                     raise
                 log.info("Mic refused 16 kHz (%s); using native rate", e)
+
+    def _reopen_mic(self):
+        """Close the stream, re-scan audio devices (PortAudio caches the list), reopen."""
+        try:
+            if self.mic is not None:
+                self.mic.abort()
+                self.mic.close()
+        except Exception:  # noqa: BLE001
+            pass
+        self.mic = None
+        try:
+            sd._terminate()
+            sd._initialize()
+        except Exception as e:  # noqa: BLE001
+            log.warning("Audio re-scan failed: %s", e)
+        self.open_mic()
+        self.last_frame = time.monotonic()
+
+    async def watch_mic(self):
+        """Background: if the mic stops delivering audio (unplugged, device switched,
+        driver reset) reopen it, retrying until a working input appears."""
+        down = False
+        while True:
+            await asyncio.sleep(2)
+            if time.monotonic() - self.last_frame < 3:
+                if down:
+                    log.info("Mic recovered")
+                    down = False
+                continue
+            if not down:
+                log.warning("Mic stopped delivering audio; reopening")
+                down = True
+            try:
+                await self.loop.run_in_executor(None, self._reopen_mic)
+            except Exception as e:  # noqa: BLE001
+                self.last_frame = time.monotonic() - 2  # retry in ~1-2 s next cycle
+                log.warning("Mic reopen failed: %s: %s", type(e).__name__, e)
 
     # ---- connection
     async def _open(self, url):
@@ -471,9 +509,12 @@ class Relay:
     def run_loop(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+        self.mic = None
+        self.last_frame = time.monotonic()
         self.open_mic()
         self.hotkey.start()
         self.loop.create_task(self.keep_connected())
+        self.loop.create_task(self.watch_mic())
         self.loop.run_forever()
 
     def shutdown(self):
